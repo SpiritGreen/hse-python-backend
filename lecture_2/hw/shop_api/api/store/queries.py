@@ -1,15 +1,7 @@
-from typing import List, Optional, Iterable
-
-from lecture_2.hw.shop_api.api.store.models import (
-    CartItem,
-    Cart,
-    Item
-)
-
-from lecture_2.hw.shop_api.api.item.contracts import (
-    ItemRequest, 
-    ItemPatchRequest
-)
+from typing import Optional, Iterable, Callable, Iterator
+from lecture_2.hw.shop_api.api.store.models import *
+from lecture_2.hw.shop_api.api.item.contracts import *
+from pydantic import PositiveInt
 
 # генератор id для корзин
 def int_cart_id_generator() -> Iterable[int]:
@@ -25,126 +17,124 @@ def int_item_id_generator() -> Iterable[int]:
         yield i
         i += 1
 
+_cart_data = dict[int, CartInfo]()
 _id_cart_generator = int_cart_id_generator()
+
+_item_data = dict[int, ItemInfo]()
 _id_item_generator = int_item_id_generator()
-_cart_data = dict[int, Cart]()
-_item_data = dict[int, Item]()
 
 # добавление новой корзины
-def add_cart() -> Cart:
+def add_cart(info: CartInfo = None) -> CartEntity:
+    if not info:
+        info = CartInfo([], 0)
     _id = next(_id_cart_generator)
-    new_cart = Cart(id=_id)
-    _cart_data[_id] = new_cart
-    return new_cart
+    _cart_data[_id] = info
+    return CartEntity(_id, _cart_data[_id])
 
 # получение корзины по id
-def get_cart(cart_id: int) -> Optional[Cart]:
-    return _cart_data.get(cart_id)
+def get_cart(cart_id: int) -> Optional[CartEntity]:
+    if cart_id not in _cart_data:
+        return None
+    return CartEntity(cart_id, _cart_data[cart_id])
 
 # получение списка корзин с query-параметрами
 def get_carts(
-        min_price: Optional[float],
-        max_price: Optional[float],
-        min_quantity: Optional[int],
-        max_quantity: Optional[int],
-        offset: int = 0,
-        limit: int = 10
-) -> List[Cart]:
-    carts = list(_cart_data.values())
+        offset: NonNegativeInt,
+        limit: PositiveInt,
+        _filter: Callable[[CartInfo], bool] | None = None
+) -> Iterator[CartEntity]:
+    if _filter is None:
+        _filter = lambda x: True
 
-    if min_price is not None:
-       carts = [cart for cart in carts if cart.price >= min_price]
-    if max_price is not None:
-       carts = [cart for cart in carts if cart.price <= max_price]
-    
-    if min_quantity is not None:
-        carts = [cart for cart in carts if sum(item.quantity for item in cart.items) >= min_quantity]
-    if max_quantity is not None:
-        carts = [cart for cart in carts if sum(item.quantity for item in cart.items) <= max_quantity]
-   
-    return carts[offset: offset + limit] 
+    entities = filter(
+        lambda x: _filter(x.info), (CartEntity(id, info) for id, info in _cart_data.items())
+    )
+
+    curr = 0
+    for entity in entities:
+        if offset <= curr < offset + limit:
+            yield entity        
+        curr += 1    
 
 # добавление предмета в корзину
-def add_item_to_cart(cart_id: int, item_id: int) -> Optional[Cart]:
-    cart = _cart_data.get(cart_id)
-    item = _item_data.get(item_id)
-
-    if not cart or not item:
+def add_item_to_cart(cart_id: int, item_id: int) -> Optional[CartItemInfo]:
+    if cart_id not in _cart_data:
         return None
-    
-    # если товар уже есть в корзине, увеличиваем его количество
-    for cart_item in cart.items:
-        if cart_item.id == item_id:
-            cart_item.quantity += 1
-            cart.price += item.price
-            return cart
 
-    # иначе добавляем новый товар в корзину    
-    cart.items.append(CartItem(
-        id=item_id,
-        name=item.name,
-        quantity=1,
-        available=True
-    ))
-    cart.price += item.price
-    return cart
+    cart_info = _cart_data.get(cart_id)
+
+    for cart_item_info in cart_info.items:
+        if cart_item_info.id == item_id:
+            cart_item_info.quantity += 1
+            return cart_item_info
+
+    item_info = _item_data[item_id]
+    cart_item_info = CartItemInfo(item_id, item_info.name, 1, not item_info.deleted)
+    cart_info.items.append(cart_item_info)
+
+    return cart_item_info
 
 # добавление нового предмета
-def add_item(item_request: ItemRequest) -> Item:
+def add_item(info: ItemInfo = None) -> ItemEntity:
     _id = next(_id_item_generator)
-    new_item = Item(id=_id, name=item_request.name, price=item_request.price)
-    _item_data[_id] = new_item
-    return new_item
+    if not info:
+        info = ItemInfo(name='', price=0.0)
+    _item_data[_id] = info
+    return ItemEntity(_id, info)
 
 # получение товара по id
-def get_item(item_id: int) -> Optional[Item]:
-    return _item_data.get(item_id)
+def get_item(item_id: int) -> Optional[ItemEntity]:
+    if item_id not in _item_data:
+        return None
+    return ItemEntity(item_id, _item_data[item_id])
 
 # получение списка товаров с query-параметрами
 def get_items(
-        min_price: Optional[float],
-        max_price: Optional[float],
-        offset: int = 0,
-        limit: int = 10,
-        show_deleted: bool = False
-) -> List[Item]:
-    items = list(_item_data.values())
+        offset: NonNegativeInt,
+        limit: PositiveInt,
+        _filter: Callable[[ItemInfo], bool] | None = None,
+) -> Iterator[ItemEntity]:
 
-    if min_price is not None:
-       items = [item for item in items if item.price >= min_price]
-    if max_price is not None:
-       items = [item for item in items if item.price <= max_price]
-    
-    if not show_deleted:
-        items = [item for item in items if not item.deleted]
+    if _filter is None:
+        _filter = lambda x: True
+
+    entities = filter(
+        lambda x: _filter(x.info), (ItemEntity(id, info) for id, info in _item_data.items())
+    )
    
-    return items[offset: offset + limit]     
+    curr = 0
+    for entity in entities:
+        if offset <= curr < offset + limit:
+            yield entity        
+        curr += 1     
 
 # замена товара по id
-def replace_item(item_id: int, item_data: ItemRequest) -> Optional[Item]:
-    item = _item_data.get(item_id)
-    if not item:
+def replace_item(item_id: int, info: ItemInfo) -> Optional[ItemEntity]:
+    if item_id not in _item_data:
         return None
-    item.name = item_data.name
-    item.price = item_data.price
-    item.deleted = False
-    return item
+    _item_data[item_id] = info
+    return ItemEntity(item_id, info)
 
 # частичное обновление товара по id
-def patch_item(item_id: int, item_data: ItemRequest) -> Optional[Item]:
-    item = _item_data.get(item_id)
-    if not item:
+def patch_item(item_id: int, info: ItemPatchInfo) -> Optional[ItemEntity]:
+    if item_id not in _item_data:
         return None
-    if item_data.name is not None:
-        item.name = item_data.name
-    if item_data.price is not None:
-        item.price = item_data.price
-    return item
+    
+    if not _item_data[id].deleted:
+        if info.name is not None:
+            _item_data[id].name = info.name
+        if info.price is not None:
+            _item_data[id].price = info.price
+    
+    return ItemEntity(item_id, _item_data[item_id])
 
 # удаление товара по id
-def delete_item(item_id: int) -> Optional[Item]:
-    item = _item_data.get(item_id)
-    if item is None:
-        return None
-    item.deleted = True
-    return item
+def delete_item(item_id: int) -> bool:
+    if item_id not in _item_data:
+        return False
+    _item_data[item_id] = True
+    for cart in _cart_data.values():
+        for item in cart.items:
+            if item.id == id:
+                item.available = False
+    return True

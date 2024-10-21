@@ -1,10 +1,10 @@
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 from pydantic import NonNegativeFloat, NonNegativeInt
+
 
 # товар в корзине
 @dataclass(slots=True)
-class CartItem:
+class CartItemInfo:
     id: int                                                 # id товара
     name: str                                               # название
     quantity: NonNegativeInt                                # количество товара в корзине
@@ -12,20 +12,28 @@ class CartItem:
 
 # корзина
 @dataclass(slots=True)
-class Cart:
+class CartInfo:
+    items: list[CartItemInfo]                               # список товаров в корзине
+    price: NonNegativeFloat                                 # общая сумма заказа
+
+@dataclass(slots=True)
+class CartEntity:
     id: int                                                 # id корзины
-    items: List[CartItem] = field(default_factory=list)     # список товаров в корзине
-    price: NonNegativeFloat = 0.0                           # общая сумма заказа
+    info: CartInfo
 
 # товар
 @dataclass(slots=True)
-class Item:
-    id: int                                                 # id товара
+class ItemInfo:
     name: str                                               # название товара
     price: NonNegativeFloat                                 # цена товара
     deleted: bool = False                                   # удалён ли товар
 
 @dataclass(slots=True)
+class ItemEntity:
+    id: int                                                 # id товара
+    info: ItemInfo
+
+@dataclass(slots=True)
 class ItemPatchInfo:
-    name: str = None,
-    price: NonNegativeFloat = None
+    name: str | None = None
+    price: NonNegativeFloat | None = None

@@ -1,39 +1,36 @@
-from pydantic import BaseModel, NonNegativeFloat, NonNegativeInt
-from typing import List
+from pydantic import BaseModel, NonNegativeFloat
 from lecture_2.hw.shop_api.api.store.models import *
-
-class CartItem(BaseModel):
-    id: int
-    name: str
-    quantity: NonNegativeInt
-    available: bool
-
-    def from_entity(entity: CartItem) -> 'CartItem':
-        return CartItem(
-            id = entity.id,
-            name = entity.name,
-            quantity = entity.quantity,
-            available = entity.available
-        )
 
 class CartResponse(BaseModel):
     id: int
-    items: List[CartItem]
+    items: list[CartItemInfo]
     price: NonNegativeFloat
 
-    def from_entity(entity: Cart) -> 'CartResponse':
+    def from_entity(entity: CartEntity) -> 'CartResponse':
         return CartResponse(
-            id = entity.id,
-            items = entity.items,
-            price = entity.price
+            id=entity.id,
+            items=entity.info.items,
+            price=entity.info.price
         )
 
-class CartRequest(BaseModel):
-    item_id: int
+class PostCartResponse(BaseModel):
+    id: int
 
-    def as_item_info(self) -> Cart:
-        return Cart(
-            id = self.id,
-            items = self.items,
-            price = self.price,
+    @staticmethod
+    def from_entity(entity: CartEntity) -> "PostCartResponse":
+        return PostCartResponse(id=entity.id) 
+
+class PostCartItemResponse(BaseModel):
+    id: int
+    name: str
+    quantity: int
+    available: bool
+
+    @staticmethod
+    def from_info(info: CartItemInfo) -> "PostCartItemResponse":
+        return PostCartItemResponse(
+            id=info.id,
+            name=info.name,
+            quantity=info.quantity,
+            available=info.available
         )

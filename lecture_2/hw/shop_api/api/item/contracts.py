@@ -1,36 +1,36 @@
 from pydantic import BaseModel, ConfigDict, NonNegativeFloat
-from typing import Optional
 from lecture_2.hw.shop_api.api.store.models import *
 
 class ItemRequest(BaseModel):
     name: str
     price: NonNegativeFloat
+    deleted: bool = False
     
-    def as_item_info(self) -> Item:
-        return Item(
-            id = self.id,
-            name = self.name,
-            price = self.price,
-            deleted = self.deleted
+    def as_item_info(self) -> ItemInfo:
+        return ItemInfo(
+            name=self.name,
+            price=self.price,
+            deleted=self.deleted,
         )
 
 class ItemResponse(BaseModel):
     id: int
     name: str
-    price: float
+    price: NonNegativeFloat
     deleted: bool
 
-    def from_entity(entity: Item) -> 'ItemResponse':
+    @staticmethod
+    def from_entity(entity: ItemEntity) -> 'ItemResponse':
         return ItemResponse(
             id = entity.id,
-            name = entity.name,
-            price = entity.price,
-            deleted = entity.deleted
+            name = entity.info.name,
+            price = entity.info.price,
+            deleted = entity.info.deleted
         )
 
 class ItemPatchRequest(BaseModel):
-    name: Optional[str] = None
-    price: Optional[float] = None
+    name: str | None = None
+    price: NonNegativeFloat | None = None
     model_config = ConfigDict(extra="forbid")
 
     def as_item_patch_info(self) -> ItemPatchInfo:
