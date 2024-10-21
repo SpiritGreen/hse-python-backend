@@ -84,7 +84,7 @@ def add_item(info: ItemInfo) -> ItemEntity:
 def get_item(item_id: int) -> Optional[ItemEntity]:
     if item_id not in _item_data:
         return None
-    return ItemEntity(item_id, _item_data[item_id])
+    return ItemEntity(item_id, _item_data.get(item_id))
 
 # получение списка товаров с query-параметрами
 def get_items(
@@ -118,13 +118,15 @@ def patch_item(item_id: int, info: ItemPatchInfo) -> Optional[ItemEntity]:
     if item_id not in _item_data:
         return None
     
-    if not _item_data[id].deleted:
+    item = _item_data.get(item_id)
+
+    if not item.deleted:
         if info.name is not None:
-            _item_data[id].name = info.name
+            item.name = info.name
         if info.price is not None:
-            _item_data[id].price = info.price
+            item.price = info.price
     
-    return ItemEntity(item_id, _item_data[item_id])
+    return ItemEntity(item_id, item)
 
 # удаление товара по id
 def delete_item(item_id: int) -> bool:

@@ -54,35 +54,35 @@ async def get_items(
 
 # PUT replace item
 @router.put('/{id}')
-async def replace_item(id: int, data: ItemRequest) -> ItemResponse:
-    info = data.as_item_info()
-    changed_item = store.replace_item(id, info)
-    if changed_item is None:
+async def replace_item(id: int, request: ItemRequest) -> ItemResponse:
+    info = request.as_item_info()
+    item = store.replace_item(id, info)
+    if item is None:
         raise HTTPException(
              status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Request resource /item/{id} was not found'
         )
-    return ItemResponse.from_entity(changed_item)
+    return ItemResponse.from_entity(item)
 
 # PATCH update item
 @router.patch('/{id}')
-async def patch_item(id: int, item_data: ItemPatchRequest) -> ItemResponse:
-    patch_info = item_data.as_item_patch_info()
-    patched_item = store.patch_item(id, patch_info)
+async def patch_item(id: int, request: ItemPatchRequest) -> ItemResponse:
+    patch_info = request.as_item_patch_info()
+    item = store.patch_item(id, patch_info)
 
-    if patched_item is None:
+    if item is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
             detail=f'Request resource /item/{id} was not found'
         )
-    if patched_item.info.deleted == True:
+    if item.info.deleted == True:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+            status_code=status.HTTP_304_NOT_MODIFIED, 
             detail=f'Request resource /item/{id} was not modified as it is deleted'
         )
 
     
-    return ItemResponse.from_entity(patched_item)
+    return ItemResponse.from_entity(item)
         
 
 # DELETE delete item
