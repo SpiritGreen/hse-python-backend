@@ -24,8 +24,8 @@ class CartEntity:
 # товар
 @dataclass(slots=True)
 class ItemInfo:
-    name: str                                               # название товара
-    price: NonNegativeFloat                                 # цена товара
+    name: str | None = None                                 # название товара
+    price: NonNegativeFloat | None = None                   # цена товара
     deleted: bool = False                                   # удалён ли товар
 
 @dataclass(slots=True)

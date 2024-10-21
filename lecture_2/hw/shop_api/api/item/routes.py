@@ -19,15 +19,10 @@ async def post_item(request: ItemRequest, response: Response) -> ItemResponse:
 async def get_item(item_id: int) -> ItemResponse:
     entity = store.get_item(item_id)
 
-    if entity is None:
+    if entity is None or entity.info.deleted:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
-            f'Request resource /item/{item_id} was not found'
-        )
-    elif entity.info.deleted:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            f'Request resource /item/{item_id} was not found'
+            detail=f'Requested resource /item/{item_id} was not found'
         )
     
     return ItemResponse.from_entity(entity)

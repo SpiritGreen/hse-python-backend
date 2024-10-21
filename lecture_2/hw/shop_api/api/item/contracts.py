@@ -36,5 +36,5 @@ class ItemPatchRequest(BaseModel):
     def as_item_patch_info(self) -> ItemPatchInfo:
         return ItemPatchInfo(
             name = self.name,
-            price = self.price
+            price = self.price,
         )

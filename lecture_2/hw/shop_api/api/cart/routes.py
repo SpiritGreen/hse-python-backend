@@ -1,6 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import NonNegativeInt, PositiveInt, NonNegativeFloat
 from lecture_2.hw.shop_api.api.store import queries
 from lecture_2.hw.shop_api.api.cart.contracts import *
@@ -9,21 +8,21 @@ from lecture_2.hw.shop_api.api.store.models import *
 router = APIRouter(prefix='/cart')
 
 # POST add new cart
-@router.post('/', status_code=status.HTTP_201_CREATED)
+@router.post('/', status_code=HTTPStatus.CREATED)
 async def post_cart(response: Response) -> PostCartResponse:
     cart = queries.add_cart()
     response.headers['location'] = f'{router.prefix}/{cart.id}'
     return PostCartResponse.from_entity(cart)
 
 # GET get cart
-@router.get('/{cart_id}')
-async def get_cart(cart_id: int) -> CartResponse:
+@router.get('/{id}')
+async def get_cart(id: int) -> CartResponse:
     entity = queries.get_cart(id)
 
     if entity is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'Request resource /cart/{cart_id} was not found'
+            detail=f'Request resource /cart/{id} was not found'
         )
     
     return CartResponse.from_entity(entity)

@@ -75,10 +75,8 @@ def add_item_to_cart(cart_id: int, item_id: int) -> Optional[CartItemInfo]:
     return cart_item_info
 
 # добавление нового предмета
-def add_item(info: ItemInfo = None) -> ItemEntity:
+def add_item(info: ItemInfo) -> ItemEntity:
     _id = next(_id_item_generator)
-    if not info:
-        info = ItemInfo(name='', price=0.0)
     _item_data[_id] = info
     return ItemEntity(_id, info)
 
