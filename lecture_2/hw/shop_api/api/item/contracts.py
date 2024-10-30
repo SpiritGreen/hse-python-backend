@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, NonNegativeFloat
-from lecture_2.hw.shop_api.api.store.models import *
+from lecture_2.hw.shop_api.api.store.models import ItemEntity, ItemInfo, ItemPatchInfo
 
 class ItemRequest(BaseModel):
     name: str
